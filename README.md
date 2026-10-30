@@ -1,174 +1,248 @@
-# Rate Limiter Gateway
+# Distributed Rate Limiter API Gateway & Reverse Proxy
 
-A lightweight **API Gateway** built with Express that sits in front of the backend services and enforces **rate limiting** using Redis. It supports five different rate limiting algorithms, request logging, and per client stats tracking with a minimal web console to monitor traffic in real time.
+[![GitHub license](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![Redis](https://img.shields.io/badge/redis-7.0-red.svg)](https://redis.io)
+[![Author](https://img.shields.io/badge/author-Saurabh%20Singh-blueviolet.svg)](https://github.com/SaurabhSinghR45)
 
----
+A high-throughput **Layer 7 API Gateway & Reverse Proxy** built with Node.js and Express 5 that protects upstream backend microservices from traffic surges, malicious scrapers, and denial-of-service spikes using **distributed in-memory Redis Lua scripts**.
 
-## Features
-
--  **5 Rate Limiting Algorithms** — choose per request via query param
-  - Fixed Window Counter
-  - Sliding Window Log
-  - Sliding Window Counter
-  - Token Bucket
-  - Leaky Bucket
-  
--  **Reverse Proxy** — forwards `/api/*` requests to the backend service
--  **Stats Tracking** — tracks total/allowed/blocked requests per client (by IP)
--  **Request Logging** — structured logging via Winston (console + file logs, separate log for blocked requests)
--  **Gateway Console UI** — simple HTML dashboard to test and visualize rate limiting behavior
--  **Redis-backed** — all algorithms use atomic Redis Lua scripts for consistency under concurrent load
+Features **5 industry-standard rate limiting algorithms**, non-blocking request telemetry via Winston, per-client analytics, and an interactive **live Web UI Console**.
 
 ---
 
-## Tech Stack
+## ⚡ Key Highlights
 
-- **Node.js** + **Express 5**
-- **Redis** (via `ioredis`) — for distributed rate limit state
-- **http-proxy-middleware** — reverse proxy to backend
-- **Winston** — logging
-- **CORS**
+- **5 Interchangeable Algorithms:** Select dynamically per-request using the `?algo=` query parameter:
+  - 🎟️ **Token Bucket** — Burst-tolerant quota allocation (Stripe/AWS standard)
+  - 🚰 **Leaky Bucket** — Smooth, constant outflow smoothing for fragile databases
+  - 🧮 **Sliding Window Counter** — Memory-efficient weighted rolling average
+  - ⏱️ **Sliding Window Log** — Sub-second mathematical precision with Redis Sorted Sets
+  - 🪟 **Fixed Window Counter** — Atomic integer increment with TTL boundaries
+- **Atomic Concurrency Guarantee:** Every rate limit check executes inside a single-threaded Redis Lua script sandbox, eliminating Time-of-Check to Time-of-Use (**TOCTOU**) race conditions under high concurrency.
+- **Fail-Open Resilience:** If Redis experiences an outage, the gateway catches the error and safely permits requests (`next()`) to ensure uninterrupted platform availability.
+- **Reverse Proxy Routing:** Seamlessly streams authorized TCP bytes to upstream target services (`http-proxy-middleware`) while short-circuiting throttled requests with **HTTP 429 Too Many Requests**.
+- **Interactive Web Console:** Real-time client dashboard to trigger burst traffic, test algorithms, and observe allow/block outcomes with zero external tools.
 
 ---
 
-## Project Structure
+## 🛠️ Architecture & Tech Stack
 
 ```
-server/
-├── server.js                  # Main gateway server (port 5000)
-├── mockServer.js               # Sample backend service (port 3000)
-├── UI/
-│   └── index.html              # Gateway Console frontend
-├── src/
-│   ├── algorithms/
-│   │   ├── fixedWindowCounter.js
-│   │   ├── slidingWindowLog.js
-│   │   ├── slidingWindowCounter.js
-│   │   ├── tokenBucket.js
-│   │   └── leakyBucket.js
-│   ├── config/
-│   │   ├── rateLimitConfig.js  # Algorithm & limit configuration
-│   │   └── redisClient.js      # Redis connection
-│   └── middleware/
-│       ├── rateLimiter.js      # Applies the selected algorithm
-│       ├── requestLogger.js    # Logs every request
-│       ├── statsTracker.js     # Tracks per-client stats
-│       └── logger.js           # Winston logger setup
+[ External Clients / Web / Mobile ]
+                 │
+                 ▼  HTTP (Port 8080)
+┌──────────────────────────────────────────────┐
+│          API Gateway (server.js)             │
+│  ├── CORS Verification                       │
+│  ├── Asynchronous Winston Request Logger     │
+│  ├── Client Telemetry & Stats Tracker        │
+│  └── Distributed Rate Limiter Middleware     │
+└───────────────┬──────────────────────────────┘
+                │
+        Atomic Lua (<1ms)
+                ▼
+      ┌──────────────────┐
+      │   Redis Server   │ (Port 6379)
+      │  In-Memory State │
+      └─────────┬────────┘
+                │
+       Decision: Allow (1) or Block (0)
+                │
+     ┌──────────┴──────────┐
+     ▼                     ▼
+ [HTTP 429 Blocked]    [Proxy Forwarding]
+ (Edge Terminated)         │
+                           ▼  HTTP (Port 3000)
+               ┌────────────────────────┐
+               │ Upstream Backend Svc   │
+               │ (mockServer.js)        │
+               └────────────────────────┘
 ```
+
+- **Runtime:** Node.js (v20+) & Express 5
+- **In-Memory Store:** Redis 7 (via `ioredis`)
+- **Proxy Engine:** `http-proxy-middleware`
+- **Logging:** Winston structured multi-transport logging
+- **Containerization:** Docker & Docker Compose
 
 ---
 
-## Getting Started
+## 🚀 Quickstart (Run Locally)
 
-### Prerequisites
-
-- Node.js (v18+ recommended)
-- Redis server running locally (`redis-server`)
-
-### Installation
-
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/Shashank-Thapliyal/rate-limiter-gateway
-cd server
+git clone https://github.com/SaurabhSinghR45/rate-limiter-gateway.git
+cd rate-limiter-gateway
 npm install
 ```
 
-### Running the project
-
-You need **two terminals** — one for the mock backend, one for the gateway (plus Redis running in the background):
-
+### 2. Start Redis
+Make sure Redis is running on port `6379`:
 ```bash
-# Terminal 1 - start Redis (if not already running)
-redis-server
+# Using Docker (Fastest):
+docker run -d --name redis -p 6379:6379 redis:alpine
 
-# Terminal 2 - start the mock backend service
-node mockServer.js
-# runs on http://localhost:3000
-
-# Terminal 3 - start the gateway
-node server.js
-# runs on http://localhost:5000
+# Or using WSL / Linux:
+sudo service redis-server start
 ```
 
-Now all requests to `http://localhost:5000/api/*` will pass through the rate limiter before being proxied to the backend.
+### 3. Start the Gateway
+```bash
+npm start
+```
+
+You will see:
+```text
+Mock backend running on port 3000
+Rate limiter gateway running on port 8080
+Upstream target: http://127.0.0.1:3000
+Web UI Console:  http://localhost:8080
+Redis Connected
+```
 
 ---
 
-## Usage
+## 🖥️ Live Web UI Console
 
-### Making a request through the gateway
+Open the built-in testing dashboard in your browser without any setup:
 
+👉 **[http://localhost:8080](http://localhost:8080)** *(or run `npm run ui` in your terminal)*
+
+- Dispatch individual requests or test **⚡ Burst x10**.
+- Switch algorithms on the fly (`tokenBucket`, `leakyBucket`, etc.).
+- Inspect live request latencies, status badges (**ALLOW 200 OK** vs **BLOCK 429**), and per-IP statistics.
+
+---
+
+## 📡 API Usage & Endpoints
+
+All client requests hit the Gateway on port **`8080`**:
+
+### Send a Request (with Algorithm Selection)
 ```bash
-curl "http://localhost:5000/api/users?algo=fixedWindow"
-curl "http://localhost:5000/api/posts?algo=tokenBucket"
+# Token Bucket (Default)
+curl.exe http://localhost:8080/api/posts?algo=tokenBucket
+
+# Leaky Bucket
+curl.exe http://localhost:8080/api/posts?algo=leakyBucket
+
+# Sliding Window Counter
+curl.exe http://localhost:8080/api/posts?algo=slidingCounter
+
+# Sliding Window Log
+curl.exe http://localhost:8080/api/posts?algo=slidingLog
+
+# Fixed Window Counter
+curl.exe http://localhost:8080/api/posts?algo=fixedWindow
 ```
 
-The `algo` query parameter selects which rate limiting strategy to apply:
-
-| Value             | Algorithm               |
-|-------------------|--------------------------|
-| `fixedWindow`     | Fixed Window Counter     |
-| `slidingLog`      | Sliding Window Log       |
-| `slidingCounter`  | Sliding Window Counter   |
-| `tokenBucket`     | Token Bucket             |
-| `leakyBucket`     | Leaky Bucket             |
-
-If no `algo` param is passed, the request is allowed through by default.
-
-### Health check
-
-```bash
-GET http://localhost:5000/health
+### Trigger Rate Limiting (PowerShell Quick Test)
+```powershell
+1..10 | ForEach-Object { curl.exe -s http://localhost:8080/api/posts }
 ```
 
-### View stats
-
+### View Live Telemetry Stats
 ```bash
-GET http://localhost:5000/stats
+curl.exe http://localhost:8080/stats
 ```
-
-Returns per-client request counts:
-
+**Response:**
 ```json
 {
-  "127.0.0.1": { "total": 12, "allowed": 9, "blocked": 3 }
+  "127.0.0.1": {
+    "total": 10,
+    "allowed": 5,
+    "blocked": 5
+  }
 }
 ```
 
 ---
 
-## Configuration
+## 🚢 Deployment Guide
 
-Rate limit values can be adjusted in `src/config/rateLimitConfig.js`:
+### Option 1: One-Click Docker Compose (Local or Cloud VPS)
 
-```js
-export const limit = 10          // requests allowed per window
-export const capacity = 5        // bucket capacity (token/leaky bucket)
-export const windowSize = 10     // window size in seconds
-export const refillRate = 1      // tokens added per second
+The project includes a ready-to-run `docker-compose.yml` that boots Redis and the Gateway together with automated health checks:
+
+```bash
+# 1. Start the entire cluster in the background
+docker compose up -d
+
+# 2. View live logs
+docker compose logs -f
+
+# 3. Stop the cluster when finished
+docker compose down
+```
+
+The gateway is now live at `http://YOUR-SERVER-IP:8080`!
+
+---
+
+### Option 2: Deploy to Cloud (Render / Railway / Fly.io)
+
+1. **Create a Redis Instance:**
+   - On [Railway](https://railway.app), [Render](https://render.com), or [Upstash](https://upstash.com), create a free Redis database and copy the Redis Connection URL (`redis://...`).
+2. **Deploy the Gateway Web Service:**
+   - Link your GitHub repo (`https://github.com/SaurabhSinghR45/rate-limiter-gateway`).
+   - Set Build Command: `npm install`
+   - Set Start Command: `npm start`
+   - Add Environment Variable:
+     - `REDIS_URL` = `your_redis_connection_url`
+     - `PORT` = `8080`
+3. Click **Deploy**!
+
+---
+
+### Option 3: Production Linux Server (Ubuntu with PM2 & Systemd)
+
+```bash
+# 1. Install Redis & PM2
+sudo apt update && sudo apt install -y redis-server
+sudo systemctl enable --now redis-server
+sudo npm install -g pm2
+
+# 2. Start Gateway with PM2 process manager
+pm2 start server.js --name "rate-limiter-gateway"
+pm2 save
+pm2 startup
 ```
 
 ---
 
-## Gateway Console (Frontend)
+## 📁 Repository Structure
 
-A simple UI (`UI/index.html`) is included to test the gateway and visualize allowed vs blocked requests in real time. Just open the file in your browser once the gateway is running.
-
-**Screenshots:**
-![Dashboard Empty](./docs/screenshots/dashboard-empty.png)
-![Dashboard Empty](./docs/screenshots/rate-limiting-logs.png)
-![Dashboard Empty](./docs/screenshots/rate-limiting-logs2.png)
+```
+rate-limiter-gateway/
+├── server.js                  # Main Gateway & Reverse Proxy (Port 8080)
+├── mockServer.js              # Private Upstream Backend (Port 3000)
+├── Dockerfile                 # Production Container Image Spec
+├── docker-compose.yml         # Multi-container orchestration (Redis + Gateway)
+├── package.json               # Node.js dependencies & scripts
+├── UI/
+│   └── index.html             # High-performance SaaS testing dashboard
+├── src/
+│   ├── algorithms/            # 5 Redis Lua rate limiting implementations
+│   │   ├── tokenBucket.js
+│   │   ├── leakyBucket.js
+│   │   ├── slidingWindowCounter.js
+│   │   ├── slidingWindowLog.js
+│   │   └── fixedWindowCounter.js
+│   ├── config/
+│   │   ├── rateLimitConfig.js # Declarative thresholds & route mapping
+│   │   └── redisClient.js     # Resilient ioredis client with retry strategy
+│   └── middleware/
+│       ├── rateLimiter.js     # Core decision & algorithm selector middleware
+│       ├── requestLogger.js   # Asynchronous latency logger (res.on finish)
+│       ├── statsTracker.js    # In-memory per-client analytics engine
+│       └── logger.js          # Winston file & console logging transports
+```
 
 ---
 
-## Logging
+## 👤 Author
 
-Logs are written using Winston to:
-- `logs/requests.log` — all requests
-- `logs/blocked.log` — only rate-limited (429) requests
-
----
-
-## Author
-
-Shashank Thapliyal
+**Saurabh Singh**
+- GitHub: [@SaurabhSinghR45](https://github.com/SaurabhSinghR45)
+- Repository: [rate-limiter-gateway](https://github.com/SaurabhSinghR45/rate-limiter-gateway)

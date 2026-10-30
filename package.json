@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Redis-backed rate limiting reverse proxy",
   "license": "ISC",
-  "author": "shashank",
+  "author": "Saurabh Singh",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "ui": "start http://localhost:8080"
   },
   "engines": {
     "node": ">=20"

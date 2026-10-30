@@ -1,206 +1,767 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Gateway Console</title>
-<style>
-  :root{
-    --bg: #ffffff;
-    --border: #ddd;
-    --text: #111;
-    --muted: #777;
-    --allow: #1a7f4e;
-    --block: #b3261e;
-  }
-  *{ box-sizing:border-box; margin:0; padding:0; }
-  body{
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 24px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  h1{ font-size:18px; font-weight:600; margin-bottom:2px; }
-  .sub{ color:var(--muted); font-size:13px; margin-bottom:20px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Limiter Gateway • Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --allow-bg: #ecfdf5;
+      --allow-text: #047857;
+      --allow-border: #a7f3d0;
+      --block-bg: #fff1f2;
+      --block-text: #be123c;
+      --block-border: #fecdd3;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+      --shadow-dropdown: 0 12px 28px -4px rgba(15, 23, 42, 0.1), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+    }
 
-  .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
-  input, select, button{
-    font-family: inherit;
-    font-size:13px;
-    padding:6px 10px;
-    border:1px solid var(--border);
-    border-radius:4px;
-    background:#fff;
-    color:var(--text);
-  }
-  button{ cursor:pointer; }
-  button:hover{ background:#f2f2f2; }
-  button.active{ background:#111; color:#fff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .status-line{ font-size:13px; color:var(--muted); margin-bottom:16px; }
-  .status-line b{ color:var(--text); }
-  .status-line .allow{ color:var(--allow); font-weight:600; }
-  .status-line .block{ color:var(--block); font-weight:600; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 20px 48px;
+      -webkit-font-smoothing: antialiased;
+    }
 
-  table{ width:100%; border-collapse:collapse; font-size:13px; }
-  th, td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
-  th{ color:var(--muted); font-weight:500; font-size:12px; }
-  .ALLOW{ color:var(--allow); font-weight:600; }
-  .BLOCK{ color:var(--block); font-weight:600; }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
 
-  .section{ margin-bottom:24px; }
-  .section-title{ font-size:13px; color:var(--muted); margin-bottom:8px; }
-  .log-box{ max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; }
-  .empty{ color:var(--muted); font-size:13px; padding:12px; }
-</style>
+    /* Top Navigation Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      margin-left: 6px;
+    }
+
+    /* Control Panel Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Custom Modern Dropdown Component */
+    .custom-dropdown {
+      position: relative;
+      width: 100%;
+      user-select: none;
+    }
+
+    .dropdown-trigger {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    .dropdown-trigger:hover {
+      border-color: var(--border-hover);
+      background: #fafbfc;
+    }
+
+    .custom-dropdown.open .dropdown-trigger {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+      background: #fff;
+    }
+
+    .dropdown-chevron {
+      color: var(--muted);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .custom-dropdown.open .dropdown-chevron {
+      transform: rotate(180deg);
+      color: var(--primary);
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-dropdown);
+      padding: 6px;
+      z-index: 100;
+      animation: dropdownFade 0.15s ease;
+    }
+
+    @keyframes dropdownFade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .custom-dropdown.open .dropdown-menu {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.12s ease;
+    }
+
+    .dropdown-item:hover {
+      background: #f1f5f9;
+      color: var(--primary);
+    }
+
+    .dropdown-item.selected {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .dropdown-item.selected::after {
+      content: "✓";
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Action Buttons */
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      outline: none !important;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:hover {
+      background: #f8fafc;
+      border-color: var(--border-hover);
+    }
+
+    button:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Auto-fire active state: Smooth, flat, NO boxy outline rectangle */
+    .btn-active {
+      background: #f1f5f9 !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    .active-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      animation: pulseDot 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--muted);
+      margin-left: auto;
+      padding: 8px 12px;
+    }
+
+    .btn-ghost:hover {
+      color: #ef4444;
+      background: #fef2f2;
+      border-color: transparent;
+    }
+
+    /* 4 Summary Stat Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .metric-value.allow { color: var(--allow-text); }
+    .metric-value.block { color: var(--block-text); }
+
+    /* Tables */
+    .table-container {
+      max-height: 320px;
+      overflow-y: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    thead th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border);
+      z-index: 2;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #fbfcfe;
+    }
+
+    .tag-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      letter-spacing: 0.3px;
+    }
+
+    .tag-status.ALLOW {
+      background: var(--allow-bg);
+      color: var(--allow-text);
+      border: 1px solid var(--allow-border);
+    }
+
+    .tag-status.BLOCK {
+      background: var(--block-bg);
+      color: var(--block-text);
+      border: 1px solid var(--block-border);
+    }
+
+    .tag-route {
+      font-size: 11px;
+      background: #f1f5f9;
+      color: #334155;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .empty-state {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
 </head>
 <body>
 
-  <h1>Gateway Console</h1>
-  <div class="sub">rate limiter test client</div>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">RL</div>
+        <div class="brand-text">
+          <h1>RateLimiter Gateway <span class="badge-pill">L7 Proxy</span></h1>
+          <p>Distributed Redis Rate Limiter &amp; Reverse Proxy</p>
+        </div>
+      </div>
+    </header>
 
-  <div class="row">
-    <label>Backend:</label>
-    <input id="backendUrl" value="http://localhost:5000" style="width:200px" spellcheck="false">
-    <select id="targetRoute">
-      <option value="/api/posts">/api/posts</option>
-      <option value="/api/users">/api/users</option>
-    </select>
-  </div>
+    <!-- Interactive Control Card -->
+    <section class="card">
+      <div class="card-title">
+        <span>Request Dispatcher</span>
+        <span style="font-size:12px; font-weight:400; color:var(--muted);">Select algorithm &amp; send traffic</span>
+      </div>
 
-  <div class="row">
-    <span style="font-size:13px; color:var(--muted);">Algo (label only, backend uses config):</span>
-    <select id="algoSelect">
-      <option value="fixedWindow">fixedWindow</option>
-      <option value="slidingLog">slidingLog</option>
-      <option value="slidingCounter">slidingCounter</option>
-      <option value="tokenBucket">tokenBucket</option>
-      <option value="leakyBucket">leakyBucket</option>
-    </select>
-  </div>
+      <div class="controls-grid">
+        <!-- Target Route Custom Dropdown -->
+        <div class="input-group">
+          <label>Target Route</label>
+          <div class="custom-dropdown" id="routeDropdown">
+            <button type="button" class="dropdown-trigger">
+              <span id="routeLabel">/api/posts (Upstream Protected)</span>
+              <svg class="dropdown-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item selected" data-value="/api/posts">/api/posts (Upstream Protected)</div>
+              <div class="dropdown-item" data-value="/api/users">/api/users (Upstream Protected)</div>
+            </div>
+          </div>
+          <input type="hidden" id="targetRoute" value="/api/posts">
+        </div>
 
-  <div class="row">
-    <button id="fireOne">Send 1</button>
-    <button id="fireBurst">Burst x10</button>
-    <button id="autoFire">Auto-fire</button>
-    <button id="clearLog">Clear log</button>
-  </div>
+        <!-- Algorithm Custom Dropdown -->
+        <div class="input-group">
+          <label>Rate Limit Algorithm</label>
+          <div class="custom-dropdown" id="algoDropdown">
+            <button type="button" class="dropdown-trigger">
+              <span id="algoLabel">Token Bucket (Smooth Bursts)</span>
+              <svg class="dropdown-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item selected" data-value="tokenBucket">Token Bucket (Smooth Bursts)</div>
+              <div class="dropdown-item" data-value="leakyBucket">Leaky Bucket (Strict Constant Rate)</div>
+              <div class="dropdown-item" data-value="slidingCounter">Sliding Window Counter (Low Memory)</div>
+              <div class="dropdown-item" data-value="slidingLog">Sliding Window Log (Strict Precision)</div>
+              <div class="dropdown-item" data-value="fixedWindow">Fixed Window Counter (Simple)</div>
+            </div>
+          </div>
+          <input type="hidden" id="algoSelect" value="tokenBucket">
+        </div>
+      </div>
 
-  <div class="status-line">
-    Allowed: <span class="allow" id="allowCount">0</span> &nbsp;|&nbsp;
-    Blocked: <span class="block" id="blockCount">0</span> &nbsp;|&nbsp;
-    <span id="connText">not connected</span>
-  </div>
+      <input id="backendUrl" type="hidden" value="http://localhost:8080">
 
-  <div class="section">
-    <div class="section-title">Traffic Log</div>
-    <div class="log-box" id="logBox">
-      <table id="logTable">
-        <thead>
-          <tr><th>Time</th><th>Status</th><th>Route</th><th>ms</th></tr>
-        </thead>
-        <tbody id="logBody"></tbody>
-      </table>
-      <div class="empty" id="logEmpty">No requests yet.</div>
+      <div class="action-bar">
+        <!-- Clean, uniform button without arrow or harsh background -->
+        <button id="fireOne" type="button">
+          <span>Send 1 Request</span>
+        </button>
+        <button id="fireBurst" type="button">
+          <span>⚡ Burst x10</span>
+        </button>
+        <button id="autoFire" type="button">
+          <span id="autoFireText">Auto-fire</span>
+        </button>
+        <button id="clearLog" type="button" class="btn-ghost">
+          <span>Clear Logs</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total Requests</div>
+        <div class="metric-value" id="totalCount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Allowed (200 OK)</div>
+        <div class="metric-value allow" id="allowCount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Blocked (429)</div>
+        <div class="metric-value block" id="blockCount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Last Latency</div>
+        <div class="metric-value" id="latencyVal" style="color:#6366f1;">-</div>
+      </div>
     </div>
+
+    <!-- Live Traffic Log -->
+    <section class="card">
+      <div class="card-title">
+        <span>Live Request Pipeline Log</span>
+        <span style="font-size: 12px; color: var(--muted);">Last 100 requests</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Route</th>
+              <th>Algorithm</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr id="logEmpty"><td colspan="5" class="empty-state">No requests dispatched yet. Click "Send 1 Request" or "Burst x10" above.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Client Telemetry Breakdown -->
+    <section class="card">
+      <div class="card-title">
+        <span>Redis Client Telemetry</span>
+        <span style="font-size: 12px; color: var(--muted);">Tracked via Gateway Stats Tracker</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Client IP</th>
+              <th>Total Dispatched</th>
+              <th>Allowed</th>
+              <th>Blocked (429)</th>
+            </tr>
+          </thead>
+          <tbody id="statsBody">
+            <tr><td colspan="4" class="empty-state">No client statistics recorded yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
-  <div class="section">
-    <div class="section-title">Client Stats</div>
-    <table>
-      <thead>
-        <tr><th>Client</th><th>Total</th><th>Allowed</th><th>Blocked</th></tr>
-      </thead>
-      <tbody id="statsBody">
-        <tr><td colspan="4" class="empty">No data yet</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <script>
+    let allowCount = 0;
+    let blockCount = 0;
+    let totalCount = 0;
+    let autoTimer = null;
 
-<script>
-let allowCount = 0, blockCount = 0;
-let autoTimer = null;
+    const $ = id => document.getElementById(id);
 
-const $ = id => document.getElementById(id);
+    // Setup Custom Modern Dropdowns
+    function initDropdown(dropdownId, hiddenInputId, labelId) {
+      const dropdown = $(dropdownId);
+      const trigger = dropdown.querySelector('.dropdown-trigger');
+      const label = $(labelId);
+      const hiddenInput = $(hiddenInputId);
+      const items = dropdown.querySelectorAll('.dropdown-item');
 
-function addLogRow(status, route, ms){
-  $("logEmpty").style.display = "none";
-  const tr = document.createElement("tr");
-  const t = new Date().toLocaleTimeString('en-GB');
-  tr.innerHTML = `<td>${t}</td><td class="${status}">${status}</td><td>${route}</td><td>${ms}</td>`;
-  $("logBody").prepend(tr);
-  while($("logBody").children.length > 100) $("logBody").lastChild.remove();
-}
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Close other dropdowns
+        document.querySelectorAll('.custom-dropdown').forEach(d => {
+          if (d !== dropdown) d.classList.remove('open');
+        });
+        dropdown.classList.toggle('open');
+      });
 
-async function fireRequest(){
-  const base = $("backendUrl").value.replace(/\/$/, "");
-  const route = $("targetRoute").value;
-  const algo = $("algoSelect").value;
-  const url = `${base}${route}?algo=${algo}`;
-  const start = performance.now();
-  try{
-    const res = await fetch(url);
-    const ms = Math.round(performance.now() - start);
-    const allowed = res.status !== 429;
-    $("connText").textContent = "connected";
-
-    if(allowed) allowCount++; else blockCount++;
-    $("allowCount").textContent = allowCount;
-    $("blockCount").textContent = blockCount;
-
-    addLogRow(allowed ? "ALLOW" : "BLOCK", route, ms);
-  }catch(err){
-    $("connText").textContent = "connection failed";
-    addLogRow("BLOCK", route, "-");
-  }
-  fetchStats();
-}
-
-async function fetchStats(){
-  const base = $("backendUrl").value.replace(/\/$/, "");
-  try{
-    const res = await fetch(`${base}/stats`);
-    const data = await res.json();
-    $("connText").textContent = "connected";
-    const entries = Object.entries(data);
-    const body = $("statsBody");
-    if(entries.length === 0){
-      body.innerHTML = `<tr><td colspan="4" class="empty">No data yet</td></tr>`;
-    } else {
-      body.innerHTML = entries.map(([client, s]) => `
-        <tr><td>${client}</td><td>${s.total}</td><td>${s.allowed}</td><td>${s.blocked}</td></tr>
-      `).join("");
+      items.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          items.forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          label.textContent = item.textContent.trim();
+          hiddenInput.value = item.getAttribute('data-value');
+          dropdown.classList.remove('open');
+        });
+      });
     }
-  }catch(err){
-    $("connText").textContent = "connection failed";
-  }
-}
 
-$("fireOne").onclick = fireRequest;
-$("fireBurst").onclick = () => { for(let i=0;i<10;i++) setTimeout(fireRequest, i*80); };
-$("autoFire").onclick = (e) => {
-  if(autoTimer){
-    clearInterval(autoTimer);
-    autoTimer = null;
-    e.target.classList.remove("active");
-    e.target.textContent = "Auto-fire";
-  } else {
-    autoTimer = setInterval(fireRequest, 350);
-    e.target.classList.add("active");
-    e.target.textContent = "Stop auto-fire";
-  }
-};
-$("clearLog").onclick = () => {
-  $("logBody").innerHTML = "";
-  $("logEmpty").style.display = "block";
-  allowCount = 0; blockCount = 0;
-  $("allowCount").textContent = "0";
-  $("blockCount").textContent = "0";
-};
+    initDropdown('routeDropdown', 'targetRoute', 'routeLabel');
+    initDropdown('algoDropdown', 'algoSelect', 'algoLabel');
 
-fetchStats();
-setInterval(fetchStats, 4000);
-</script>
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+    });
+
+    // Dynamic backend URL resolution
+    const resolveBackend = () => {
+      if (window.location.origin && window.location.origin.startsWith("http")) {
+        return window.location.origin;
+      }
+      return "http://localhost:8080";
+    };
+
+    function addLogRow(status, route, algo, ms) {
+      const emptyRow = $("logEmpty");
+      if (emptyRow) emptyRow.remove();
+
+      const tr = document.createElement("tr");
+      const timeStr = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      
+      tr.innerHTML = `
+        <td style="color:var(--muted);">${timeStr}</td>
+        <td><span class="tag-status ${status}">${status === "ALLOW" ? "✓ 200 OK" : "✕ 429 BLOCKED"}</span></td>
+        <td><span class="tag-route">${route}</span></td>
+        <td style="color:#475569; font-weight:500;">${algo}</td>
+        <td>${ms !== "-" ? ms + " ms" : "-"}</td>
+      `;
+
+      $("logBody").prepend(tr);
+      while ($("logBody").children.length > 100) {
+        $("logBody").lastChild.remove();
+      }
+    }
+
+    async function fireRequest() {
+      const base = resolveBackend();
+      const route = $("targetRoute").value;
+      const algo = $("algoSelect").value;
+      const url = `${base}${route}?algo=${algo}`;
+      const start = performance.now();
+
+      try {
+        const res = await fetch(url);
+        const ms = Math.round(performance.now() - start);
+        const allowed = res.status !== 429;
+
+        totalCount++;
+        if (allowed) {
+          allowCount++;
+        } else {
+          blockCount++;
+        }
+
+        $("totalCount").textContent = totalCount;
+        $("allowCount").textContent = allowCount;
+        $("blockCount").textContent = blockCount;
+        $("latencyVal").textContent = ms + "ms";
+
+        addLogRow(allowed ? "ALLOW" : "BLOCK", route, algo, ms);
+      } catch (err) {
+        addLogRow("BLOCK", route, algo, "-");
+      }
+      fetchStats();
+    }
+
+    async function fetchStats() {
+      const base = resolveBackend();
+      try {
+        const res = await fetch(`${base}/stats`);
+        const data = await res.json();
+        
+        const entries = Object.entries(data);
+        const body = $("statsBody");
+        if (entries.length === 0) {
+          body.innerHTML = `<tr><td colspan="4" class="empty-state">No client statistics recorded yet.</td></tr>`;
+        } else {
+          body.innerHTML = entries.map(([client, s]) => `
+            <tr>
+              <td style="font-weight:600; color:var(--text);">${client}</td>
+              <td>${s.total}</td>
+              <td style="color:var(--allow-text); font-weight:600;">${s.allowed}</td>
+              <td style="color:var(--block-text); font-weight:600;">${s.blocked}</td>
+            </tr>
+          `).join("");
+        }
+      } catch (err) {
+        // Offline or connection failed
+      }
+    }
+
+    // Attach Action Listeners
+    $("fireOne").onclick = fireRequest;
+    
+    $("fireBurst").onclick = () => {
+      for (let i = 0; i < 10; i++) {
+        setTimeout(fireRequest, i * 70);
+      }
+    };
+
+    $("autoFire").onclick = (e) => {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        $("autoFire").classList.remove("btn-active");
+        $("autoFireText").innerHTML = "Auto-fire";
+      } else {
+        autoTimer = setInterval(fireRequest, 350);
+        $("autoFire").classList.add("btn-active");
+        $("autoFireText").innerHTML = `<span class="active-dot"></span> Auto-fire (Active)`;
+      }
+    };
+
+    $("clearLog").onclick = () => {
+      $("logBody").innerHTML = `<tr id="logEmpty"><td colspan="5" class="empty-state">Logs cleared. Ready for new traffic.</td></tr>`;
+      totalCount = 0;
+      allowCount = 0;
+      blockCount = 0;
+      $("totalCount").textContent = "0";
+      $("allowCount").textContent = "0";
+      $("blockCount").textContent = "0";
+      $("latencyVal").textContent = "-";
+    };
+
+    // Initial telemetry sync & heartbeat
+    fetchStats();
+    setInterval(fetchStats, 3000);
+  </script>
 </body>
 </html>
