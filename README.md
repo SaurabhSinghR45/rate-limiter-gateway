@@ -154,6 +154,12 @@ A clean Web UI (`UI/index.html`) is served directly by the gateway to test and v
 
 Open `http://localhost:8080` in your browser once the gateway is running.
 
+**Dashboard Overview:**
+![Gateway Console Dashboard](./docs/screenshots/dashboard-console.png)
+
+**Live Rate Limiting Test:**
+![Rate Limiting Live Test](./docs/screenshots/rate-limiting-test.png)
+
 ---
 
 ## Logging
