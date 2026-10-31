@@ -2,6 +2,8 @@
 
 A lightweight **API Gateway** built with Express that sits in front of the backend services and enforces **rate limiting** using Redis. It supports five different rate limiting algorithms, request logging, and per client stats tracking with a minimal web console to monitor traffic in real time.
 
+**Live Demo:** [https://rate-limiter-gateway-3t5x.onrender.com](https://rate-limiter-gateway-3t5x.onrender.com)
+
 ---
 
 ## Features
@@ -152,7 +154,8 @@ export const refillRate = 1      // tokens added per second
 
 A clean Web UI (`UI/index.html`) is served directly by the gateway to test and visualize allowed vs blocked requests in real time.
 
-Open `http://localhost:8080` in your browser once the gateway is running.
+- **Live URL:** [https://rate-limiter-gateway-3t5x.onrender.com](https://rate-limiter-gateway-3t5x.onrender.com)
+- **Local URL:** `http://localhost:8080`
 
 **Dashboard Overview:**
 ![Gateway Console Dashboard](./docs/screenshots/dashboard-console.png)
@@ -171,6 +174,10 @@ Logs are written using Winston to:
 ---
 
 ## Deployment
+
+### Live Service
+The project is deployed on Render:
+[https://rate-limiter-gateway-3t5x.onrender.com](https://rate-limiter-gateway-3t5x.onrender.com)
 
 ### Docker Compose
 
